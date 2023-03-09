@@ -5,7 +5,7 @@ const app = express();
 const cors = require("cors");
 
 // import routes
-// const imei = require("./Routes/imei");
+const imei = require("./Routes/imei");
 
 dotenv.config();
 
@@ -24,7 +24,7 @@ app.use(express.json());
 app.use(cors());
 
 // imei
-// app.use("/imei", customer);
+app.use("/imei", imei);
 
 app.listen(process.env.PORT || 6000, () => {
   console.log("Backend server running!");
