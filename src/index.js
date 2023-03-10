@@ -10,8 +10,10 @@ const imei = require("./Routes/imei");
 dotenv.config();
 
 mongoose.set("strictQuery", false);
+// const DB_URI = process.env.MONGO_CONNECTION_STRING
+const DB_URI = "mongodb://localhost:27017/dejero" 
 mongoose
-  .connect(process.env.MONGO_CONNECTION_STRING)
+  .connect(DB_URI, { useUnifiedTopology: true })
   .then(console.log("mongoDB connected!"))
   .catch((e) => console.log(`Failed to connect to MongoDB ${e}`));
 
@@ -26,6 +28,6 @@ app.use(cors());
 // imei
 app.use("/imei", imei);
 
-app.listen(process.env.PORT || 6000, () => {
-  console.log("Backend server running!");
+app.listen(process.env.PORT || 5000, () => {
+  console.log(`Backend server running on port ${process.env.PORT || 5000}! `);
 });

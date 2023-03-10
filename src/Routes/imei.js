@@ -1,6 +1,8 @@
 const IMEI = require("../Models/IMEI");
 const router = require("express").Router();
 
+const imeiInProcessCache = new Map();
+
 // add IMEI
 router.post("/add", async (req, res) => {
   const newIMEI = new IMEI(req.body);
@@ -13,14 +15,13 @@ router.post("/add", async (req, res) => {
   }
 });
 
-//GET IMEI
+//GET IMEIs
 router.post("/get", async (req, res) => {
-  console.log(req.body);
   let { limit, page, ...filter } = req.body;
   console.log(filter);
   console.log(limit);
   try {
-    const fetchedIMEI = await IMEI.find(filter)
+    const fetchedIMEI = await IMEI.find({})
       .limit(limit)
       .skip((page - 1) * limit)
       .sort({ createdAt: -1 });
@@ -32,13 +33,49 @@ router.post("/get", async (req, res) => {
   }
 });
 
+//GET Next IMEI
+router.post("/getNext", async (req, res) => {
+  let exitFlag = false
+  // let { limit, page, ...filter } = req.body;
+  try {
+    while (!exitFlag) {
+      const fetchedIMEI = await IMEI.findOne({state:"available"})
+      .limit(1)
+      .sort({ createdAt: 1 });
+      console.log(fetchedIMEI)
+      if(imeiInProcessCache.get(fetchedIMEI._id)){
+        // item already requested
+        console.log("item being processed!")
+      }else{
+        // set the cache
+        imeiInProcessCache.set(fetchedIMEI._id, "processed");
+        //update database
+        const updatedIMEI = await IMEI.findByIdAndUpdate(
+          fetchedIMEI._id,
+          {
+            state:"taken",
+          },
+          { new: true }
+        );
+        res.status(200).json(updatedIMEI);
+        exitFlag = true
+      }
+      
+    }
+
+  } catch (error) {
+    console.log(error)
+    res.status(400).json(error);
+  }
+});
+
 //UPDATE IMEI
 router.patch("/update/:id", async (req, res) => {
   try {
     const updatedIMEI = await IMEI.findByIdAndUpdate(
       req.params.id,
       {
-        $set: req.body,
+        $set: {state:"taken"},
       },
       { new: true }
     );
@@ -48,11 +85,13 @@ router.patch("/update/:id", async (req, res) => {
   }
 });
 
+
+
 //DELETE IMEI
-router.delete("/delete/:id", async (req, res) => {
+router.delete("/deleteAll", async (req, res) => {
   try {
-    const deletedIMEI = await IMEI.findByIdAndDelete(req.params.id);
-    res.status(200).json(`IMEI ${deletedIMEI.id} deleted`);
+    const deletedIMEI = await IMEI.remove({});
+    res.status(200).json(`IMEI deleted`);
   } catch (error) {
     res.status(400).json(error);
   }
@@ -75,6 +114,15 @@ router.post("/fetch", async (req, res) => {
       currentPage: page,
     });
     // res.status(200).json(fetchedIMEIs);
+  } catch (error) {
+    res.status(400).json(error);
+  }
+});
+
+// test IMEI
+router.post("/test", async (req, res) => {
+  try {
+    res.status(200).json("test");
   } catch (error) {
     res.status(400).json(error);
   }
